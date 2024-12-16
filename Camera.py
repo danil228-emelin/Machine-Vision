@@ -33,14 +33,6 @@ def main():
         if roi_blue is None:
             roi_blue = define_roi(frame, 0.5, 0.3, 0.6, 0.4)
 
-        # Unpack the coordinates for green ROI
-        #top_left, bottom_right = roi_green
-        #cv2.rectangle(frame, top_left, bottom_right, (255, 0, 0), 2)
-
-        # Unpack the coordinates for blue ROI
-        #top_left_blue, bottom_right_blue = roi_blue
-        #cv2.rectangle(frame, top_left_blue, bottom_right_blue, (0, 0, 255), 2)
-
         # Apply background subtraction to get the foreground mask
         fgmask = fgbg.apply(frame)
         fgmask = cv2.medianBlur(fgmask, 5)
@@ -48,13 +40,23 @@ def main():
         # Convert frame to HSV color space for color detection
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # Define HSV range for green detection
+        # Define the HSV range for detecting green color
         lower_green = np.array([35, 40, 40])
         upper_green = np.array([85, 255, 255])
 
-        green_mask = cv2.inRange(hsv, lower_green, upper_green)
+        # Define the HSV range for detecting blue color
+        lower_blue = np.array([100, 150, 50])  # Lower bound for blue color
+        upper_blue = np.array([140, 255, 255])  # Upper bound for blue color
 
-        contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Create binary masks for green and blue colors
+        green_mask = cv2.inRange(hsv, lower_green, upper_green)
+        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+        # Find contours in the green mask
+        green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find contours in the blue mask
+        blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Create two equal-sized squares on the same horizontal line
         square_size = 100  # Define the size of the squares
@@ -66,27 +68,35 @@ def main():
         square2_top_left = (int(frame.shape[1] * 0.5), int(frame.shape[0] * 0.5))  # Second square
         square2_bottom_right = (square2_top_left[0] + square_size, square2_top_left[1] + square_size)
 
-        # Draw the squares in red color
+        # Draw the squares in red and blue colors
         cv2.rectangle(frame, square1_top_left, square1_bottom_right, (255, 0, 0), 2)  # First blue square
         cv2.rectangle(frame, square2_top_left, square2_bottom_right, (0, 0, 255), 2)  # Second red square
 
-        for contour in contours:
+        # Process green contours
+        for contour in green_contours:
             if cv2.contourArea(contour) < 500:
                 continue
 
             x, y, w, h = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-            # if is_in_roi(roi_green, (x, y, w, h)):
-             #   cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
-
-            if is_in_roi((square1_top_left,square1_bottom_right), (x, y, w, h)):
+            # Check if the green object is inside the first square (ROI)
+            if is_in_roi((square1_top_left, square1_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
 
-            if is_in_roi((square2_top_left,square2_bottom_right), (x, y, w, h)):
-                cv2.putText(frame, "Blue", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
+        # Process blue contours
+        for contour in blue_contours:
+            if cv2.contourArea(contour) < 500:
+                continue
 
-        # Display the foreground mask and the frame with the detected green objects and the two squares
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)  # Blue color
+
+            # Check if the blue object is inside the second square (ROI)
+            if is_in_roi((square2_top_left, square2_bottom_right), (x, y, w, h)):
+                cv2.putText(frame, "Blue", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
+
+        # Display the foreground mask and the frame with the detected green and blue objects and the squares
         cv2.imshow("Foreground Mask", fgmask)
         cv2.imshow("Frame", frame)
 

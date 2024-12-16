@@ -48,9 +48,14 @@ def main():
         lower_blue = np.array([100, 150, 50])  # Lower bound for blue color
         upper_blue = np.array([140, 255, 255])  # Upper bound for blue color
 
-        # Create binary masks for green and blue colors
+        # Define the HSV range for detecting red color
+        lower_red = np.array([0, 120, 70])  # Lower red range 1
+        upper_red = np.array([10, 255, 255]) # Upper red range 1
+
+        # Create binary masks for green, blue, and red colors
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
         blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+        red_mask = cv2.inRange(hsv, lower_red,upper_red)
 
         # Find contours in the green mask
         green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -58,19 +63,28 @@ def main():
         # Find contours in the blue mask
         blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        # Find contours in the red mask
+        red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         # Create two equal-sized squares on the same horizontal line
         square_size = 100  # Define the size of the squares
 
-        # Calculate the horizontal positions of the squares
-        square1_top_left = (int(frame.shape[1] * 0.2), int(frame.shape[0] * 0.5))  # First square
+        # First square
+        square1_top_left = (int(frame.shape[1] * 0.2), int(frame.shape[0] * 0.5))
         square1_bottom_right = (square1_top_left[0] + square_size, square1_top_left[1] + square_size)
 
-        square2_top_left = (int(frame.shape[1] * 0.5), int(frame.shape[0] * 0.5))  # Second square
+        # Second square
+        square2_top_left = (int(frame.shape[1] * 0.5), int(frame.shape[0] * 0.5))
         square2_bottom_right = (square2_top_left[0] + square_size, square2_top_left[1] + square_size)
 
-        # Draw the squares in red and blue colors
+        # Third square
+        square3_top_left = (int(frame.shape[1] * 0.8), int(frame.shape[0] * 0.5))
+        square3_bottom_right = (square3_top_left[0] + square_size, square3_top_left[1] + square_size)
+
+        # Draw the squares in red, blue, and green colors
         cv2.rectangle(frame, square1_top_left, square1_bottom_right, (255, 0, 0), 2)  # First blue square
         cv2.rectangle(frame, square2_top_left, square2_bottom_right, (0, 0, 255), 2)  # Second red square
+        cv2.rectangle(frame, square3_top_left, square3_bottom_right, (0, 255, 0), 2)  # Third green square
 
         # Process green contours
         for contour in green_contours:
@@ -96,7 +110,19 @@ def main():
             if is_in_roi((square2_top_left, square2_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Blue", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
 
-        # Display the foreground mask and the frame with the detected green and blue objects and the squares
+        # Process red contours inside the green square (first square)
+        for contour in red_contours:
+            if cv2.contourArea(contour) < 500:
+                continue
+
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red color
+
+            # Check if the red object is inside the first square (ROI)
+            if is_in_roi((square3_top_left, square3_bottom_right), (x, y, w, h)):
+                cv2.putText(frame, "Red", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
+
+        # Display the foreground mask and the frame with the detected green, blue, and red objects and the squares
         cv2.imshow("Foreground Mask", fgmask)
         cv2.imshow("Frame", frame)
 

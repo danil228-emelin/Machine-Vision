@@ -24,6 +24,8 @@ def main():
     roi_blue = None
 
     green_detected = False
+    green_detected2 = False
+
     blue_detected = False
     red_detected = False
 
@@ -70,25 +72,30 @@ def main():
         # Find contours in the red mask
         red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Create two equal-sized squares on the same horizontal line
+        # Create four equal-sized squares on the same horizontal line
         square_size = 100  # Define the size of the squares
 
-        # First square
-        square1_top_left = (int(frame.shape[1] * 0.2), int(frame.shape[0] * 0.5))
+        # First square (Blue)
+        square1_top_left = (int(frame.shape[1] * 0.01), int(frame.shape[0] * 0.4))  # Moved more to the left
         square1_bottom_right = (square1_top_left[0] + square_size, square1_top_left[1] + square_size)
 
-        # Second square
-        square2_top_left = (int(frame.shape[1] * 0.5), int(frame.shape[0] * 0.5))
+        # Second square (Red)
+        square2_top_left = (int(frame.shape[1] * 0.25), int(frame.shape[0] * 0.4))  # Moved more to the left
         square2_bottom_right = (square2_top_left[0] + square_size, square2_top_left[1] + square_size)
 
-        # Third square
-        square3_top_left = (int(frame.shape[1] * 0.8), int(frame.shape[0] * 0.5))
+        # Third square (Green)
+        square3_top_left = (int(frame.shape[1] * 0.5), int(frame.shape[0] * 0.4))  # Moved more to the left
         square3_bottom_right = (square3_top_left[0] + square_size, square3_top_left[1] + square_size)
 
-        # Draw the squares in red, blue, and green colors
+        # Fourth square (Purple) - New square added
+        square4_top_left = (int(frame.shape[1] * 0.75), int(frame.shape[0] * 0.4))  # Placed after the third square
+        square4_bottom_right = (square4_top_left[0] + square_size, square4_top_left[1] + square_size)
+
+        # Draw the squares in red, blue, green, and purple colors
         cv2.rectangle(frame, square1_top_left, square1_bottom_right, (255, 0, 0), 2)  # First blue square
         cv2.rectangle(frame, square2_top_left, square2_bottom_right, (0, 0, 255), 2)  # Second red square
         cv2.rectangle(frame, square3_top_left, square3_bottom_right, (0, 255, 0), 2)  # Third green square
+        cv2.rectangle(frame, square4_top_left, square4_bottom_right, (255, 0, 0), 2)  # Fourth blue square
 
         # Process green contours
         for contour in green_contours:
@@ -102,6 +109,10 @@ def main():
             if is_in_roi((square1_top_left, square1_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
                 green_detected = True
+
+            if is_in_roi((square4_top_left, square4_bottom_right), (x, y, w, h)):
+                cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
+                green_detected2 = True
 
         # Process blue contours
         for contour in blue_contours:
@@ -130,10 +141,10 @@ def main():
                 red_detected = True
 
         # Check if all colors are detected
-        if green_detected and blue_detected and red_detected:
-            cv2.putText(frame, "ALLOWED", (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        if green_detected and blue_detected and red_detected and green_detected2:
+            cv2.putText(frame, "ALLOWED", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        # Display the foreground mask and the frame with the detected green, blue, and red objects and the squares
+        # Display the foreground mask and the frame with the detected green, blue, red, and purple objects and the squares
         cv2.imshow("Foreground Mask", fgmask)
         cv2.imshow("Frame", frame)
 

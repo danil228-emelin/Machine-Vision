@@ -28,6 +28,7 @@ def main():
 
     blue_detected = False
     red_detected = False
+    code = [0, 0, 0, 0]
 
     while True:
         ret, frame = cap.read()
@@ -109,10 +110,15 @@ def main():
             if is_in_roi((square1_top_left, square1_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
                 green_detected = True
+                code[0] = 1
 
             if is_in_roi((square4_top_left, square4_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
                 green_detected2 = True
+                if (code[0] == 1 and code[1] == 1 and code[2] == 1):
+                    code[3] = 1
+                else:
+                    code = 4 * [0]
 
         # Process blue contours
         for contour in blue_contours:
@@ -126,6 +132,10 @@ def main():
             if is_in_roi((square2_top_left, square2_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Blue", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
                 blue_detected = True
+                if (code[0] == 1):
+                    code[1] = 1
+                else:
+                    code = 4 * [0]
 
         # Process red contours inside the green square (first square)
         for contour in red_contours:
@@ -139,9 +149,13 @@ def main():
             if is_in_roi((square3_top_left, square3_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Red", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
                 red_detected = True
+                if (code[0] == 1 and code[1] == 1):
+                    code[2] = 1
+                else:
+                    code = 4 * [0]
 
         # Check if all colors are detected
-        if green_detected and blue_detected and red_detected and green_detected2:
+        if code[0] == 1 and code[1] == 1 and code[2] == 1 and code[3] == 1:
             cv2.putText(frame, "ALLOWED", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Display the foreground mask and the frame with the detected green, blue, red, and purple objects and the squares
@@ -154,6 +168,7 @@ def main():
 
     cap.release()
     cv2.destroyAllWindows()
+
 
 # Run the main function if this script is executed
 if __name__ == "__main__":

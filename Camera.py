@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 
+
 # Function to define the Region of Interest (ROI)
 def define_roi(frame, per_a, per_b, per_c, per_d):
     h, w, _ = frame.shape
     top_left = (int(w * per_a), int(h * per_b))
     bottom_right = (int(w * per_c), int(h * per_d))
     return top_left, bottom_right
+
 
 # Function to check if the bounding box is inside the ROI
 def is_in_roi(roi, bbox):
@@ -16,6 +18,7 @@ def is_in_roi(roi, bbox):
     (top_left, bottom_right) = roi
     return (top_left[0] <= center_x <= bottom_right[0]) and (top_left[1] <= center_y <= bottom_right[1])
 
+
 def main():
     cap = cv2.VideoCapture(0)
     fgbg = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=50)
@@ -23,17 +26,34 @@ def main():
     roi_green = None
     roi_blue = None
 
-    green_detected = False
-    green_detected2 = False
-
-    blue_detected = False
-    red_detected = False
+    face_detected = False
     code = [0, 0, 0, 0]
 
     while True:
+        face_cascade = cv2.CascadeClassifier(
+            "./haarcascade_frontalface_default.xml"
+        )
+        eye_cascade = cv2.CascadeClassifier(
+            "./haarcascade_eye.xml"
+        )
         ret, frame = cap.read()
         if not ret:
             break
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        for (x, y, w, h) in faces:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            roi_gray = gray[y: y + h, x: x + w]
+            roi_color = frame[y: y + h, x: x + w]
+            eyes = eye_cascade.detectMultiScale(roi_gray)
+            if len(eyes) > 0:
+                face_detected = True
+                cv2.putText(frame, "FACE DETECTED", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
+            for (ex, ey, ew, eh) in eyes:
+                cv2.rectangle(
+                    roi_color, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2
+                )
 
         if roi_green is None:
             roi_green = define_roi(frame, 0.1, 0.1, 0.3, 0.3)
@@ -57,7 +77,7 @@ def main():
 
         # Define the HSV range for detecting red color
         lower_red = np.array([0, 120, 70])  # Lower red range 1
-        upper_red = np.array([10, 255, 255]) # Upper red range 1
+        upper_red = np.array([10, 255, 255])  # Upper red range 1
 
         # Create binary masks for green, blue, and red colors
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
@@ -109,12 +129,10 @@ def main():
             # Check if the green object is inside the first square (ROI)
             if is_in_roi((square1_top_left, square1_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
-                green_detected = True
                 code[0] = 1
 
             if is_in_roi((square4_top_left, square4_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Green", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
-                green_detected2 = True
                 if (code[0] == 1 and code[1] == 1 and code[2] == 1):
                     code[3] = 1
                 else:
@@ -131,7 +149,6 @@ def main():
             # Check if the blue object is inside the second square (ROI)
             if is_in_roi((square2_top_left, square2_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Blue", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
-                blue_detected = True
                 if (code[0] == 1):
                     code[1] = 1
                 else:
@@ -148,14 +165,13 @@ def main():
             # Check if the red object is inside the first square (ROI)
             if is_in_roi((square3_top_left, square3_bottom_right), (x, y, w, h)):
                 cv2.putText(frame, "Red", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2)
-                red_detected = True
                 if (code[0] == 1 and code[1] == 1):
                     code[2] = 1
                 else:
                     code = 4 * [0]
 
         # Check if all colors are detected
-        if code[0] == 1 and code[1] == 1 and code[2] == 1 and code[3] == 1:
+        if code[0] and code[1] and code[2] and code[3] and face_detected:
             cv2.putText(frame, "ALLOWED", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Display the foreground mask and the frame with the detected green, blue, red, and purple objects and the squares
